@@ -1,15 +1,15 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  namespace: todo
-  name: todo-storage-service
+  namespace: {{ template "todo.fullname" .}}-todo
+  name: todo-storage-ingestion
   labels:
-    todo-app-deployment: todo-storage-service
+    todo-app-deployment: todo-storage-ingestion
 spec:
-  replicas: 2
+  replicas: {{ .Values.replicas.todoStorageIngestion }}
   selector:
       matchLabels:
-        todo-app-pod: todo-storage-service
+        todo-app-pod: todo-storage-ingestion
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -18,12 +18,16 @@ spec:
   template:
     metadata:
       labels:
-        todo-app-pod: todo-storage-service
+        todo-app-pod: todo-storage-ingestion
     spec:
       restartPolicy: Always
+      initContainers:
+      - name: init-rabbitmq
+        image: busybox
+        command: ['sh', '-c', 'until nslookup todo-rabbitmq; do echo waiting for RabbitMQ; sleep 2; done;']
       containers:
-      - image: datn/todo-storage-service:1.0
-        name: todo-storage-service
+      - name: todo-storage-ingestion
+        image: {{ .Values.todoImageUser }}/todo-storage-ingestion:{{ .Values.todoVersion }}
         envFrom:
           - configMapRef:
               name: todo-config
@@ -33,8 +37,6 @@ spec:
             secretKeyRef:
               name: todo-secret
               key: POSTGRES_PASSWORD
-        ports:
-        - containerPort: 3000
         resources:
           limits:
             memory: "134217728"

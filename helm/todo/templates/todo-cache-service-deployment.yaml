@@ -1,15 +1,15 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  namespace: todo
-  name: todo-storage-service
+  namespace: {{ template "todo.fullname" .}}-todo
+  name: todo-cache-service
   labels:
-    todo-app-deployment: todo-storage-service
+    todo-app-deployment: todo-cache-service
 spec:
-  replicas: 2
+  replicas: {{ .Values.replicas.todoCacheService }}
   selector:
       matchLabels:
-        todo-app-pod: todo-storage-service
+        todo-app-pod: todo-cache-service
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -18,21 +18,15 @@ spec:
   template:
     metadata:
       labels:
-        todo-app-pod: todo-storage-service
+        todo-app-pod: todo-cache-service
     spec:
       restartPolicy: Always
       containers:
-      - image: datn/todo-storage-service:1.0
-        name: todo-storage-service
+      - name: todo-cache-service
+        image: {{ .Values.todoImageUser }}/todo-cache-service:{{ .Values.todoVersion }}
         envFrom:
           - configMapRef:
               name: todo-config
-        env:
-        - name: POSTGRES_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: todo-secret
-              key: POSTGRES_PASSWORD
         ports:
         - containerPort: 3000
         resources:
